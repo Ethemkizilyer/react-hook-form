@@ -1,6 +1,42 @@
 "use client";
 
+import { yupResolver } from "@hookform/resolvers/yup";
+import { Controller, SubmitHandler, useFieldArray, useForm } from "react-hook-form";
+import * as yup from "yup"
+
+const schema= yup.object({
+  questions:yup.array().of(yup.object().shape({
+    text:yup.string().required("This field is required")
+  })).required()
+})
+
+type Question = { text: string };
+
+type Inputs = {
+  questions: Array<Question>;
+};
+
+const questionDefaultValue: Question = { text: "" };
+
 export default function Home() {
+  const {control,handleSubmit}=useForm<Inputs>({
+    defaultValues:{questions:[]},
+    resolver:yupResolver(schema),
+  })
+
+  const onSubmit:SubmitHandler<Inputs>=(data)=>console.log(data)
+  const { fields, append, remove } = useFieldArray({
+    control,
+    name: "questions",
+  });
+
+  function addNewQuestion() {
+    append(questionDefaultValue);
+  }
+
+  function removeQuestion(questionIndex: number) {
+    remove(questionIndex);
+  }
   return (
     <div className="flex min-h-full flex-1 flex-col justify-center px-6 py-12 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-sm">
@@ -10,20 +46,34 @@ export default function Home() {
       </div>
 
       <div className="mt-10 sm:mx-auto sm:w-full sm:max-w-sm">
-        <form className="space-y-6">
-          <div>
+        <form className="space-y-6"  onSubmit={handleSubmit(onSubmit)}>
+          {fields.map((question,index)=>(
+            <>
+            <Controller
+            key={question.id}
+            control={control}
+            name={`questions.${index}.text`}
+            render={({field,fieldState})=>{
+              const errorMessage=fieldState.error?.message
+              return(
+                <div>
             <label className="block text-sm font-medium leading-6 text-gray-900">
-              1. Question
+            {index + 1}. Question
             </label>
             <div className="flex flex-row gap-2 justify-center items-center mt-2">
               <div className="flex-1">
                 <input
                   type="text"
-                  className="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
+                  className={`block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6 outline-none ${
+                    errorMessage ? "ring-red-500" : ""
+                  }`}
+                  {...field}
                 />
               </div>
               <div>
-                <button className="flex justify-center rounded-md bg-red-600 px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-red-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600">
+                <button
+                onClick={() => removeQuestion(index)}
+                className="flex justify-center rounded-md bg-red-600 px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-red-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600">
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
                     viewBox="0 0 20 20"
@@ -39,10 +89,19 @@ export default function Home() {
                 </button>
               </div>
             </div>
-          </div>
+            <span className="text-sm text-red-500">{errorMessage}</span>
+          </div> 
+              )
+            }}
+            
+            />
+           </>
+          ))}
+          
 
           <div className="flex flex-col gap-1">
             <button
+            onClick={addNewQuestion}
               type="button"
               className="mt-3 inline-flex w-full justify-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 sm:mt-0 sm:w-auto"
             >
